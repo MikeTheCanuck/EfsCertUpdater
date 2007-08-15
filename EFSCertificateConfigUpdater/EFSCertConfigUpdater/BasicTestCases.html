@@ -1,0 +1,91 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+    <title>EFSCONFIGUPDATE: Test Cases</title>
+</head>
+<body>
+    Test Cases for EFSConfigUpdate.exe application<br />
+    <br />
+    Variables:<br />
+    <ul>
+        <li>Zero/one/2+ suitable certificates</li>
+        <li>certificates with 1+ unsuitable characteristic</li>
+        <li>CertificateHash registry value configured (or not)</li>
+        <li>CA is reachable on the network (or not)</li>
+        <li>AD is reachable on the network (or not)</li>
+    </ul>
+    <p>
+        Case 1: One enrolled v2 EFS cert, not yet configured</p>
+    <ol>
+        <li>Verify that one suitable v2 EFS cert is available in the user's My Store.</li>
+        <li>Verify that CertificateHash value has not been configured (i.e. that Registry value
+            does not exist/is deleted)</li>
+        <li>Run application with no arguments.</li>
+    </ol>
+    <p>
+        &nbsp; &nbsp;&nbsp; Expected Result: CertificateHash value is created, set to the
+        value of the certificate's Thumbprint field.&nbsp; Trace log includes "The user's
+        EFS certificate setting will be updated." or "The EFS configuration has been updated
+        with a suitable digital certificate."</p>
+    <p>
+    </p>
+    Case 2: One enrolled v2 EFS cert, already configured<br />
+    <ol>
+        <li>Verify that one suitable v2 EFS cert is available in the user's My Store.</li>
+        <li>Verify that CertificateHash value has been configured, set to the value of the certificate's
+            Thumbprint field.</li>
+        <li>Run application with no arguments.</li>
+    </ol>
+    <p>
+        &nbsp; &nbsp;&nbsp; Expected Result: CertificateHash value is unaltered.&nbsp; Trace
+        log includes "The selected certificate is already configured as the active EFS certificate."</p>
+    Case 3: One enrolled v2 EFS cert, another EFS cert already configured<br />
+    <br />
+    Case 4: Two enrolled v2 EFS certs, none configured<br />
+    <br />
+    Case 5: Two enrolled v2 EFS certs, one already configured<br />
+    <br />
+    Case 6: Two enrolled v2 EFS certs, second cert already configured, first cert will
+    be selected and successfully configured<br />
+    <br />
+    Case 7: No enrolled v1 or v2 EFS certs, none configured either<br />
+    <br />
+    Case 8: No enrolled v1 or v2 EFS certs, one already configured<br />
+    <br />
+    <br />
+    <br />
+    Definition: Suitable v2 EFS cert<br />
+    <ul>
+        <li>X.509v3 certificate that contains the EFS EKU</li>
+        <li>Valid From &lt; Today's Date &lt; Valid To</li>
+        <li>Has matching private key</li>
+        <li>Certificate is not marked as archived</li>
+        <li>Has Microsoft v2 OID</li>
+    </ul>
+    <p>
+        Definition: Vista-suitable v2 EFS cert</p>
+    <ul>
+        <li>Valid From &lt; Today's Date &lt; Valid To</li>
+        <li>Has matching private key</li>
+        <li>Certificate is not marked as archived</li>
+        <li>Has Microsoft v2 OID</li>
+        <li>[Note: does not require EFS EKU]</li>
+    </ul>
+    <p>
+        Definition: already configured</p>
+    <ul>
+        <li>A valid value exists for CertificateHash value for the user in whose context the
+            EFSConfigUpdate will be run.</li>
+    </ul>
+    <p>
+        Definition: CertificateHash value</p>
+    <ul>
+        <li>Registry value stored under HKey_Current_User\Software\Microsoft\Windows NT\CurrentVersion\EFS\CurrentKeys\</li>
+        <li>Data type = REG_BINARY</li>
+    </ul>
+    <p>
+    </p>
+
+
+</body>
+</html>

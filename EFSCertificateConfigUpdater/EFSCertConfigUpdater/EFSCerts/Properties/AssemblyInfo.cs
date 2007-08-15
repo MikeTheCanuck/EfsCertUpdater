@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("EFSConfiguration")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Examines and updates the user's active EFS digital certificate")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Intel Corporation")]
+[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("EFSConfiguration")]
-[assembly: AssemblyCopyright("Copyright © Intel Corporation 2007")]
+[assembly: AssemblyCopyright("Copyright © Mike Smith-Lonergan 2007")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
