@@ -35,7 +35,7 @@ namespace EFSConfiguration
         static int ExitCode;
 
         // Command line arguments
-        static string CertificateTemplateName; //TODO: Confirm whether the template name exists in the certificates as a string, or only as an OID?
+        static string CertificateTemplateName; //TODO: Create a function that takes the friendly name of a cert template, determines if there's a connection to AD, and looks up the OID for that template
         static string IssuingCAIdentifier;
         static bool LimitToV2Only;
 
@@ -74,8 +74,13 @@ namespace EFSConfiguration
             Trace.WriteLine("Tracing started at " + DateTime.Now.ToString());
 
             // Variable represents the certificate selected by this application to configure as the active EFS certificate
-            // TODO: initialize with a dummy value or some other way to get around the problem that new X509Certificate2() leads to a CryptographicException
             X509Certificate2 EfsCertificateToUse = new X509Certificate2();
+
+            /* 
+             * I found out the hard way that the new Constructor above doesn't initialize the X509Certificate2 object with a null value. 
+             * Without this redundant code to set it explicitly to null, checking the value of EFSCertificateToUse without an assigned cert 
+             * leads to a CryptographicException.
+             */
             EfsCertificateToUse = null;
 
             // Some of this code was cloned/inherited from http://msdn2.microsoft.com/en-us/library/system.security.cryptography.x509certificates.x509certificate2ui(vs.80).aspx and other various locations
@@ -165,7 +170,7 @@ namespace EFSConfiguration
                 {
                     if (IsCertificateEnrolledFromSpecifiedTemplate(x509Cert, CertificateTemplateName) == false)
                     {
-                        Trace.WriteLine("Certificate Rejected: certificate is not enrolled from template." + Environment.NewLine);
+                        Trace.WriteLine("Certificate Rejected: certificate is not enrolled from specified cert template." + Environment.NewLine);
                         continue;
                     }
                 }
@@ -627,7 +632,6 @@ namespace EFSConfiguration
                 System.Environment.Exit(0);
             }
 
-            // TODO: enable this argument to receive the identifier of a specific CA
             // //Optional command-line argument specifying the name of the Certificate Template which the organization may want users to use for EFS
             //CertificateTemplateName = args[0];
 
