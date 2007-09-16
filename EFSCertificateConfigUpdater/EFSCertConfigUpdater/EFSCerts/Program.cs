@@ -150,7 +150,7 @@ namespace EFSConfiguration
                     //   there was no opportunity for a Microsoft CA to archive the keypair during enrollment
                     if (IsCertificateEnrolledFromV2Template(x509Cert) == false)
                     {
-                        Trace.WriteLine("Certificate Rejected: certificate is enrolled from v2 certificate." + Environment.NewLine);
+                        Trace.WriteLine("Certificate Rejected: certificate is not enrolled from v2 certificate." + Environment.NewLine);
                         continue;
                     }
                     
