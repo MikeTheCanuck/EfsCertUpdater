@@ -14,7 +14,7 @@
     <SccAuxPath>SAK</SccAuxPath>
     <SccProvider>SAK</SccProvider>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>EFSCertUpdate.pfx</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>EFSConfigurationUpdate_TemporaryKey.pfx</AssemblyOriginatorKeyFile>
     <ManifestCertificateThumbprint>E1A6E07975DEF2E038DC458FBFD38A67CB4C8A57</ManifestCertificateThumbprint>
     <ManifestKeyFile>EFSConfigurationUpdate_TemporaryKey.pfx</ManifestKeyFile>
     <GenerateManifests>true</GenerateManifests>
@@ -38,6 +38,8 @@
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <StartupObject>
+    </StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
