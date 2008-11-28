@@ -1,13 +1,15 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
+using Microsoft.Win32;
 
-namespace MikeSL
+namespace ParanoidMike
 {
     static class Utility
     {
+        static RegistryKey hkcu = Registry.CurrentUser;
+        static RegistryKey hklm = Registry.LocalMachine;
+
         //public static string ConvertByteArrayToString(byte[] inputArray)
         //    /// Converts an arbitrary-sized byte array into an arbitrary-sized string
 
@@ -19,8 +21,15 @@ namespace MikeSL
 
         //}
 
-
-        /// Takes in any string and convert it into a Byte array, suitable for e.g. insertion into a REG_BINARY Registry value
+        /// <summary>
+        /// Takes in any string and convert it into a Byte array, suitable for e.g. insertion into a REG_BINARY Registry value.
+        /// </summary>
+        /// <param name="inputString">
+        /// String value to be converted to a Byte array.
+        /// </param>
+        /// <returns>
+        /// Byte array, converted from the input String value.
+        /// </returns>
         public static byte[] ConvertStringToByteArray(string inputString)
         {
 
@@ -37,10 +46,22 @@ namespace MikeSL
             return _outputByteArray;
         }
 
+        /// <summary>
         /// Compares the values of two byte arrays, and returns true only if every array member is identical
-        public static bool DoByteArraysMatch(byte[] firstArray, byte[] secondArray)
+        /// </summary>
+        /// <param name="firstArray">
+        /// First array to be compared.
+        /// </param>
+        /// Second array to be compared.
+        /// <param name="secondArray">
+        /// </param>
+        /// <returns>
+        /// True if first array is identical to second array.
+        /// False if the arrays are not identical.
+        /// </returns>
+        public static bool DoByteArraysMatch(byte[] firstArray, 
+                                             byte[] secondArray)
         {
-
             // Check to be sure they two arrays match in length before doing anything else; if not, then they cannot possibly match
             int _upperBound = firstArray.GetUpperBound(0);
 
@@ -75,8 +96,18 @@ namespace MikeSL
             return true;
         }
 
-        public static void AddTraceLog(string applicationDataFolder, string traceLogFileName)
-{
+        /// <summary>
+        /// Instantiates a Trace log for detailed tracking of an application's internal activities.
+        /// </summary>
+        /// <param name="applicationDataFolder">
+        /// Name of folder to create in the current user's %LOCALAPPDATA% profile location.
+        /// </param>
+        /// <param name="traceLogFileName">
+        /// Name of file to create in the applicationDataFolder location.
+        /// </param>
+        public static void AddTraceLog(string applicationDataFolder, 
+                                       string traceLogFileName)
+        {
             // Setup Trace log
             TextWriterTraceListener traceLog;
             string _userLocalApplicationData;
@@ -106,7 +137,12 @@ namespace MikeSL
             Trace.Listeners.Add(traceLog);
         }
 
-        /// Closes the Trace Log
+        /// <summary>
+        /// Closes an existing Trace Log.
+        /// </summary>
+        /// <param name="traceLogFileName">
+        /// Name of file to close.
+        /// </param>
         public static void DisposeTraceLog(string traceLogFileName)
         {
             if (Trace.Listeners.Count >0)
@@ -115,11 +151,65 @@ namespace MikeSL
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="userHive">
+        /// 
+        /// </param>
+        /// <param name="subKey">
+        /// 
+        /// </param>
+        /// <param name="valueName">
+        /// 
+        /// </param>
+        /// <returns>
+        /// 
+        /// </returns>
+        public static byte[] GetRegistryValue(bool userHive, 
+                                              string subKey, 
+                                              string valueName)
+        {
+            //const string subKey = "Software\\Microsoft\\Windows NT\\CurrentVersion\\EFS\\CurrentKeys";
+            //const string valueName = "CertificateHash";
+
+            RegistryKey _registrySubKey;
+            byte[] _registryValue; // Declare a variable to hold the returned Registry value
+
+            if (userHive)
+            {
+                _registrySubKey = hkcu.OpenSubKey(subKey);
+            }
+            else
+            {
+                _registrySubKey = hklm.OpenSubKey(subKey);
+            }
+
+            _registryValue = (byte[])_registrySubKey.GetValue(valueName, null);
+
+            // NOTE: Previously I tried to derive a string that can be compared to X509Certificate2.GetCertHashString()
+            // e.g. "C480C669C22270BACD51E65C6AC28596DFF93D0D"
+            // Note: I tried this conversion code I found on the 'Net http://forums.microsoft.com/MSDN/ShowPost.aspx?PostID=1656747&SiteId=1, but couldn't get it to work
+
+            _registrySubKey.Close();
+
+            if (userHive)
+            {
+                hkcu.Close();
+            }
+            else
+            {
+                hklm.Close();
+            }
+
+            return _registryValue;
+        }
+
         private static int _osVersion = -1; // contains os major version number
+
         /// <summary>
         /// Gets the major version of the operating system.
         /// </summary>
-        
         public static int OSVersion
         {
             get
@@ -132,6 +222,54 @@ namespace MikeSL
                 return _osVersion;
             }
         }
-        
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="userHive">
+        /// 
+        /// </param>
+        /// <param name="subKey">
+        /// 
+        /// </param>
+        /// <param name="valueName">
+        /// 
+        /// </param>
+        /// <param name="valueData">
+        /// 
+        /// </param>
+        public static void SetRegistryValue(bool userHive, 
+                                            string subKey, 
+                                            string valueName, 
+                                            byte[] valueData)
+        {
+
+            RegistryKey _registrySubKey;
+
+            if (userHive)
+            {
+                _registrySubKey = hkcu.OpenSubKey(subKey);
+            }
+            else
+            {
+                _registrySubKey = hklm.OpenSubKey(subKey);
+            }
+
+            _registrySubKey.SetValue(valueName, 
+                                     valueData, 
+                                     RegistryValueKind.Binary);
+
+            _registrySubKey.Close();
+
+            if (userHive)
+            {
+                hkcu.Close();
+            }
+            else
+            {
+                hklm.Close();
+            }
+
+        }
     }
 }
