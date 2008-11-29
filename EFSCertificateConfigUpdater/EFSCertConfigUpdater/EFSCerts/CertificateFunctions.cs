@@ -5,7 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace ParanoidMike
 {
-    class CertificateFunctions
+    static class CertificateFunctions
     {
 
         // All Microsoft OIDs are documented here: http://support.microsoft.com/default.aspx/kb/287547
@@ -62,8 +62,14 @@ namespace ParanoidMike
 
             }
             // Throw a NullReferenceException because one of the parameters is null
-            throw new ApplicationException("One of the parameters is null and could not be processed");
-
+            if (x509Cert == null)
+            {
+                throw new ArgumentNullException("x509Cert");
+            }
+            else
+            {
+                throw new ArgumentNullException("oid");
+            }
         }
 
         /// <summary>
@@ -220,6 +226,41 @@ namespace ParanoidMike
             // Currently all the application needs to check for is whether the digital certificate has expired yet            
             return x509Cert.NotAfter > DateTime.Now;
         }
+
+        /// <summary>
+        /// Opens a handle to the user's MY certificate store (i.e. the Microsoft CryptoAPI user cert store).
+        /// </summary>
+        /// <returns>
+        /// The user's MY certificate store, in the form of an x509Store object.
+        /// </returns>
+        public static X509Store OpenUserMyStore()
+        {
+            // Some of this code was cloned/inherited from http://msdn.microsoft.com/library/system.security.cryptography.x509certificates.x509certificate2ui.aspx and other various locations
+            // Create a new instance of X509Store to associate with the user's My store
+            X509Store MyStore = new X509Store("MY",
+                                              StoreLocation.CurrentUser);
+
+            // Open the store read-only so as not to accidently munge my certs, and do NOT create a new store
+            try
+            {
+                // TODO: (v2) Change this MyStore.Open() call to ReadWrite when I'm ready to Archive existing certs and/or enroll for new Certificates
+                MyStore.Open(OpenFlags.ReadOnly | OpenFlags.OpenExistingOnly);
+            }
+
+            catch (Exception e)
+            // TODO: Find out what kind of exception is thrown when the store isn't available, and fill it in as a specific Exception
+            //       e.g. run this code with a restricted token using e.g. DropMyRights.exe
+            {
+                Trace.WriteLine("Couldn't open your MY certificate store: error = " +
+                  e.Message);
+
+                Console.WriteLine("Couldn't open your MY certificate store: error = " +
+                                  e.Message);
+                throw; // TODO: examine this for a better throw option...
+            }
+            return MyStore;
+        }
+
 
     }
 }

@@ -138,14 +138,11 @@ namespace ParanoidMike
         }
 
         /// <summary>
-        /// Closes an existing Trace Log.
+        /// Closes all existing Trace Log.
         /// </summary>
-        /// <param name="traceLogFileName">
-        /// Name of file to close.
-        /// </param>
-        public static void DisposeTraceLog(string traceLogFileName)
+        public static void DisposeTraceLog()
         {
-            if (Trace.Listeners.Count >0)
+            if (Trace.Listeners.Count == 0)
             {
             Trace.Close();
             }
@@ -185,7 +182,8 @@ namespace ParanoidMike
                 _registrySubKey = hklm.OpenSubKey(subKey);
             }
 
-            _registryValue = (byte[])_registrySubKey.GetValue(valueName, null);
+            // _registryValue = (byte[])_registrySubKey.GetValue(valueName, null);
+            _registryValue = (byte[]) _registrySubKey.GetValue(valueName, null);
 
             // NOTE: Previously I tried to derive a string that can be compared to X509Certificate2.GetCertHashString()
             // e.g. "C480C669C22270BACD51E65C6AC28596DFF93D0D"
@@ -246,13 +244,14 @@ namespace ParanoidMike
 
             RegistryKey _registrySubKey;
 
+            // Note - don't forget to set writeable = True anytime you're going to write to the Registry.  How embarrassing to miss this for two days!
             if (userHive)
             {
-                _registrySubKey = hkcu.OpenSubKey(subKey);
+                _registrySubKey = hkcu.OpenSubKey(subKey, true);
             }
             else
             {
-                _registrySubKey = hklm.OpenSubKey(subKey);
+                _registrySubKey = hklm.OpenSubKey(subKey, true);
             }
 
             _registrySubKey.SetValue(valueName, 
