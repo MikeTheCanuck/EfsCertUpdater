@@ -286,6 +286,7 @@ namespace CommandLine
                 return this.type;
             }
         }
+
         /// <summary>
         /// Returns true if the argument did not have an explicit short name specified.
         /// </summary>

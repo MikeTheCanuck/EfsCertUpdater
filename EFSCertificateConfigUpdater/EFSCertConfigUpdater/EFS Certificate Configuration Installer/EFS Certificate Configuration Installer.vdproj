@@ -21,6 +21,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_B6558E8FF89A45E5B2C8B87FE786BA0F"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_58353C4C30B749C3ADD4B54036622CBF"
         "MsmSig" = "8:_UNDEFINED"
@@ -50,6 +56,19 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.Net.Framework.2.0"
+                    {
+                    "Name" = "8:.NET Framework 2.0 (x86)"
+                    "ProductCode" = "8:Microsoft.Net.Framework.2.0"
+                    }
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.Windows.Installer.3.1"
+                    {
+                    "Name" = "8:Microsoft Windows Installer 3.1"
+                    "ProductCode" = "8:Microsoft.Windows.Installer.3.1"
+                    }
+                }
             }
         }
         "Release"
@@ -74,6 +93,19 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.Net.Framework.3.5.SP1"
+                    {
+                    "Name" = "8:.NET Framework 3.5 SP1"
+                    "ProductCode" = "8:Microsoft.Net.Framework.3.5.SP1"
+                    }
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.Windows.Installer.3.1"
+                    {
+                    "Name" = "8:Windows Installer 3.1"
+                    "ProductCode" = "8:Microsoft.Windows.Installer.3.1"
+                    }
+                }
             }
         }
     }
@@ -104,6 +136,26 @@
         }
         "File"
         {
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_B6558E8FF89A45E5B2C8B87FE786BA0F"
+            {
+            "SourcePath" = "8:..\\EFSCerts\\Certificate-update.ico"
+            "TargetName" = "8:Certificate-update.ico"
+            "Tag" = "8:"
+            "Folder" = "8:_5A655259F72240A08D4C04ABEF452BA9"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
         }
         "FileType"
         {
@@ -138,14 +190,14 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:EFS Certificate Configuration Installer"
-        "ProductCode" = "8:{DF12BDDE-C2B5-4C69-BBB3-5A4443D5EC81}"
-        "PackageCode" = "8:{864627DD-EDA8-43EC-B71B-0689915CBB90}"
+        "ProductCode" = "8:{0FA701A8-703D-4489-A90A-AFE104426560}"
+        "PackageCode" = "8:{505E3A44-65C4-4D1B-8B67-D1E10940F102}"
         "UpgradeCode" = "8:{7F232967-6504-4CF8-A714-15252EC88AD3}"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:TRUE"
-        "ProductVersion" = "8:1.1.0"
+        "ProductVersion" = "8:1.2"
         "Manufacturer" = "8:Codeplex"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:http://www.codeplex.com/EFSCertUpdater/Thread/List.aspx"
@@ -155,8 +207,8 @@
         "Keywords" = "8:"
         "ARPCOMMENTS" = "8:"
         "ARPURLINFOABOUT" = "8:http://www.codeplex.com"
-        "ARPPRODUCTICON" = "8:_58353C4C30B749C3ADD4B54036622CBF"
-        "ARPIconIndex" = "3:32512"
+        "ARPPRODUCTICON" = "8:_B6558E8FF89A45E5B2C8B87FE786BA0F"
+        "ARPIconIndex" = "3:0"
         "SearchPath" = "8:"
         "UseSystemSearchPath" = "11:TRUE"
         "TargetPlatform" = "3:0"
@@ -659,7 +711,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_58353C4C30B749C3ADD4B54036622CBF"
             {
-            "SourcePath" = "8:..\\EFSCerts\\obj\\Release\\EFSCertConfigUpdater.exe"
+            "SourcePath" = "8:..\\EFSCerts\\obj\\Debug\\EFSCertConfigUpdater.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_5A655259F72240A08D4C04ABEF452BA9"

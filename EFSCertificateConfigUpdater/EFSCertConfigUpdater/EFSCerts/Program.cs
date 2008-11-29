@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Permissions;
 using CommandLine;
@@ -76,8 +75,9 @@ namespace EFSConfiguration
             Utility.AddTraceLog("EFSCertConfigUpdate",
                                 "EFSCertConfigUpdateTraceLog.txt");
             // Write the date & time to the trace log
-            Trace.WriteLine("Tracing started at " +
-                            DateTime.Now.ToString());
+            Trace.WriteLine("Current EFS cert update session started at " +
+                            DateTime.Now.ToString() +
+                            Environment.NewLine);
 
             // If the process has no parameters specified, then operate without; otherwise, parse those parameters
             if (args.Length > 0)
@@ -94,7 +94,7 @@ namespace EFSConfiguration
              */
             EfsCertificateToUse = null;
 
-            X509Store MyStore = OpenUserMyStore();
+            X509Store MyStore = CertificateFunctions.OpenUserMyStore();
             
             /* 
              * Create a collection to enumerate the existing Certs in the MY store, and perform a Cast.
@@ -261,7 +261,7 @@ namespace EFSConfiguration
             // If the foreach loop has identified an EFS certificate, then update the user's CertificateHash registry value with the selected certificate's hash value
             if (CertificateHashValueIsOK != true && EfsCertificateToUse != null)
             {
-                UpdateCertificateHashRegistryValue(EfsCertificateToUse);
+                CertificateHashValueUpdated = EFSCertificateFunctions.UpdateCertificateHashRegistryValue(EfsCertificateToUse);
             }
 
             // Were any suitable certificates identified?  If not, then indicate that no suitable certificates were found
@@ -269,7 +269,7 @@ namespace EFSConfiguration
             {
                 // TODO: send an error code to StdErr, for those IT admins that want to use this utility in a script (and prefer StdErr as a way to capture issues)
                 // TODO: v2 - implement an Application Event Log message as well - try this sample code: http://www.thescarms.com/dotnet/EventLog.aspx
-                Trace.WriteLine("The user has no EFS certificates suitable for updating their EFS configuration - please notify the administrator." +
+                Trace.WriteLine("Perhaps the user has no EFS certificates suitable for updating their EFS configuration - please notify the administrator." +
                                 Environment.NewLine);
                 ExitCode = 1;
 
@@ -303,75 +303,41 @@ namespace EFSConfiguration
             //       that configured cert is available in the user's cert store, is valid, and has a private key).
 
             // Close the Trace Log before exiting
-            Utility.DisposeTraceLog("EFSConfigUpdateTraceLog.txt");
+            Utility.DisposeTraceLog();
 
             // Lastly, terminate the application
             System.Environment.Exit(ExitCode);
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="EfsCertificate">
-        /// </param>
-        private static void UpdateCertificateHashRegistryValue(X509Certificate2 EfsCertificate)
+        #endregion
+
+        #region Private Methods
+
+        // TODO: remove this function once the Help text (/?) for this application has all the useful text from here.
+        private static void DisplayUsage()
         {
-            try
             {
-                // WriteCertificateHashToRegistry() returns true only if the CertificateHash value is successfully updated
-                CertificateHashValueUpdated = EFSCertificateFunctions.WriteCertificateHashToRegistry(EfsCertificate);
+                // Get the name of the process executable, so that updates to the process name are automatically mirrored
+                Process _process = System.Diagnostics.Process.GetCurrentProcess();
+                string _processName = _process.ProcessName;
+                string _processNameUpperCase = _processName.ToUpper();
 
-                if (CertificateHashValueUpdated)
-                {
-                    Trace.WriteLine("The user's EFS configuration has been updated with a suitable digital certificate." +
-                                    Environment.NewLine);
-                }
-
+                Console.WriteLine("Updates your EFS configuration to use a centrally-managed EFS certificate." + Environment.NewLine);
+                Console.WriteLine("" + Environment.NewLine);
+                Console.WriteLine("  " + _processNameUpperCase + " [argument1]" + Environment.NewLine);
+                Console.WriteLine("" + Environment.NewLine);
+                Console.WriteLine("  " + _processNameUpperCase + " [argument1] [argument2]" + Environment.NewLine);
+                Console.WriteLine("" + Environment.NewLine);
+                Console.WriteLine("      [argument1] specifies the name of the desired Certificate Template" + Environment.NewLine);
+                Console.WriteLine("                   e.g. \"Company EFS certificate version 2\"" + Environment.NewLine);
+                Console.WriteLine("" + Environment.NewLine);
+                Console.WriteLine("      [argument2] specifies the distinguished name of the Issuing CA" + Environment.NewLine);
+                Console.WriteLine("                   e.g. \"IssuingCA01\"" + Environment.NewLine);
+                Console.WriteLine("" + Environment.NewLine);
+                Console.WriteLine("  Used without parameters, " + _processNameUpperCase + " will select the first non-self-" + Environment.NewLine);
+                Console.WriteLine("  signed EFS certificate it finds in the user's personal certificate store." + Environment.NewLine);
+                Console.WriteLine("" + Environment.NewLine);
             }
-            catch (CryptographicException e)
-            {
-                ExitCode = 2;
-                Trace.WriteLine("Cryptographic Exception when trying to write CertificateHash value to the Registry:" +
-                                Environment.NewLine);
-                Trace.WriteLine(e.Message +
-                                Environment.NewLine);
-                Trace.WriteLine(e.InnerException +
-                                Environment.NewLine);
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns>
-        /// 
-        /// </returns>
-        private static X509Store OpenUserMyStore()
-        {
-            // Some of this code was cloned/inherited from http://msdn.microsoft.com/library/system.security.cryptography.x509certificates.x509certificate2ui.aspx and other various locations
-            // Create a new instance of X509Store to associate with the user's My store
-            X509Store MyStore = new X509Store("MY",
-                                              StoreLocation.CurrentUser);
-
-            // Open the store read-only so as not to accidently munge my certs, and do NOT create a new store
-            try
-            {
-                // TODO: (v2) Change this MyStore.Open() call to ReadWrite when I'm ready to Archive existing certs and/or enroll for new Certificates
-                MyStore.Open(OpenFlags.ReadOnly | OpenFlags.OpenExistingOnly);
-            }
-
-            catch (Exception e)
-            // TODO: Find out what kind of exception is thrown when the store isn't available, and fill it in as a specific Exception
-            //       e.g. run this code with a restricted token using e.g. DropMyRights.exe
-            {
-                Trace.WriteLine("Couldn't open your MY certificate store: error = " +
-                  e.Message);
-
-                Console.WriteLine("Couldn't open your MY certificate store: error = " +
-                                  e.Message);
-                throw; // TODO: examine this for a better throw option...
-            }
-            return MyStore;
         }
 
         /// <summary>
@@ -420,36 +386,7 @@ namespace EFSConfiguration
             }
         }
 
-        #endregion
 
-        #region Private Methods
-
-        // TODO: remove this function once the Help text (/?) for this application has all the useful text from here.
-        private static void DisplayUsage()
-        {
-            {
-                // Get the name of the process executable, so that updates to the process name are automatically mirrored
-                Process _process = System.Diagnostics.Process.GetCurrentProcess();
-                string _processName = _process.ProcessName;
-                string _processNameUpperCase = _processName.ToUpper();
-
-                Console.WriteLine("Updates your EFS configuration to use a centrally-managed EFS certificate." + Environment.NewLine);
-                Console.WriteLine("" + Environment.NewLine);
-                Console.WriteLine("  " + _processNameUpperCase + " [argument1]" + Environment.NewLine);
-                Console.WriteLine("" + Environment.NewLine);
-                Console.WriteLine("  " + _processNameUpperCase + " [argument1] [argument2]" + Environment.NewLine);
-                Console.WriteLine("" + Environment.NewLine);
-                Console.WriteLine("      [argument1] specifies the name of the desired Certificate Template" + Environment.NewLine);
-                Console.WriteLine("                   e.g. \"Company EFS certificate version 2\"" + Environment.NewLine);
-                Console.WriteLine("" + Environment.NewLine);
-                Console.WriteLine("      [argument2] specifies the distinguished name of the Issuing CA" + Environment.NewLine);
-                Console.WriteLine("                   e.g. \"IssuingCA01\"" + Environment.NewLine);
-                Console.WriteLine("" + Environment.NewLine);
-                Console.WriteLine("  Used without parameters, " + _processNameUpperCase + " will select the first non-self-" + Environment.NewLine);
-                Console.WriteLine("  signed EFS certificate it finds in the user's personal certificate store." + Environment.NewLine);
-                Console.WriteLine("" + Environment.NewLine);
-            }
-        }
 
         #endregion
     }
