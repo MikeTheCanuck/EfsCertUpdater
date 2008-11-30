@@ -1,22 +1,43 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.Win32;
+using ParanoidMike;
 
 namespace ParanoidMike
 {
     static class EFSCertificateFunctions
     {
+        const string EFS_EKU = "1.3.6.1.4.1.311.10.3.4";
         const string fullKey =   @"HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\EFS\CurrentKeys";
         const string subKey =    @"Software\Microsoft\Windows NT\CurrentVersion\EFS\CurrentKeys";
         const string valueName =  "CertificateHash";
 
         # region Public Methods
 
+        /// <summary>
+        /// Determines whether the certificate is an EFS certificate or not.
+        /// </summary>
+        /// <param name="x509Cert">
+        /// A digital certificate, passed in as an X509Certificate2 object.
+        /// </param>
+        /// <returns>
+        /// True if the certificate is an EFS certificate.
+        /// False if the certificate is *not* an EFS certificate.</returns>
+        public static bool IsCertificateAnEfsCertificate(X509Certificate2 x509Cert)
+        {
+            bool returnValue = false;
+
+            if (CertificateFunctions.DoesCertificateHaveSpecifiedEku(x509Cert, EFS_EKU))
+            {
+                returnValue = true;
+            }
+
+            return returnValue;
+        }
+        
         /// <summary>
         /// Compares the Thumbprint of the certificate to the value of the CertificateHash registry setting.
         /// This determines which certificate is actively being used by the EFS component driver.
@@ -78,12 +99,12 @@ namespace ParanoidMike
         }
 
         /// <summary>
-        /// Updates the user's CertificateHash Registry setting with the newly-selected EFS certificate, and logs the result (success or exceptions).
+        /// Updates the user's EFS configuration settings with the newly-selected EFS certificate, and logs the result (success or exceptions).
         /// </summary>
         /// <param name="EfsCertificate">
         /// A digital certificate, passed in as an X509Certificate2 object.
         /// </param>
-        public static bool UpdateCertificateHashRegistryValue(X509Certificate2 EfsCertificate)
+        public static bool UpdateUserEfsConfiguration(X509Certificate2 EfsCertificate)
         {
             bool returnValue;
 
@@ -118,47 +139,27 @@ namespace ParanoidMike
         # region Private Methods
 
         /// <summary>
-        /// Convert a byte array to an Object.
-        /// Copied from http://snippets.dzone.com/posts/show/3897
-        /// </summary>
-        /// <param name="arrBytes">
-        /// The byte[] array to be converted.
-        /// </param>
-        /// <returns>
-        /// The object to which the byte array is converted.
-        /// </returns>
-        private static Object ByteArrayToObject(byte[] arrBytes)
-        {
-            MemoryStream memStream = new MemoryStream();
-            BinaryFormatter binForm = new BinaryFormatter();
-            memStream.Write(arrBytes, 0, arrBytes.Length);
-            memStream.Seek(0, SeekOrigin.Begin);
-            Object obj = (Object)binForm.Deserialize(memStream);
-            return obj;
-        }
-
-        /// <summary>
         /// This function compares the hash calculated for the current certificate to the EFS CertificateHash Registry value for the current user.
         /// </summary>
-        /// <param name="CertificateThumbprint">
+        /// <param name="certificateThumbprint">
         /// The "Thumbprint" value calculated for the current certificate.
         /// </param>
-        /// <param name="_certificateHashValue">
+        /// <param name="certificateHashValue">
         /// The data from the CertificateHash Registry value for the current user.
         /// </param>
         /// <returns>
         /// True if the two values match.
         /// False if the two values do not match.
         /// </returns>
-        private static bool DoesCertificateMatchEfsCertificateHashRegistryValue(byte[] CertificateThumbprint,
-                                                                               byte[] _certificateHashValue)
+        private static bool DoesCertificateMatchEfsCertificateHashRegistryValue(byte[] certificateThumbprint,
+                                                                                byte[] certificateHashValue)
         {
             // First test the input values to make sure they're not null
-            if ((CertificateThumbprint != null) || (_certificateHashValue != null))
+            if ((certificateThumbprint != null) || (certificateHashValue != null))
             {
                 try
                 {
-                    if (Utility.DoByteArraysMatch(CertificateThumbprint, _certificateHashValue))
+                    if (Utility.DoByteArraysMatch(certificateThumbprint, certificateHashValue))
                     {
                         Trace.WriteLine("Result of examination: The user's EFS certificate configuration does not need to be updated." +
                                         Environment.NewLine);
@@ -169,8 +170,6 @@ namespace ParanoidMike
                     {
                         Trace.WriteLine("The user's EFS certificate configuration will be updated." +
                                         Environment.NewLine);
-                        //Console.WriteLine("The original EFS CertificateHash registry setting was one value" + Environment.NewLine); // + _certificateHashValue + Environment.NewLine);
-                        //Console.WriteLine("The new EFS CertificateHash setting will be something else" + Environment.NewLine); // + CertificateThumbprint + Environment.NewLine);
                         return false;
                     }
                 }
@@ -185,13 +184,13 @@ namespace ParanoidMike
 
             }
             // Throw an ArgumentNullException because one of the arrays is null
-            if (CertificateThumbprint == null)
+            if (certificateThumbprint == null)
             {
-                throw new ArgumentNullException("CertificateThumbprint");
+                throw new ArgumentNullException("certificateThumbprint");
             }
             else
             {
-                throw new ArgumentNullException("_certificateHashValue");
+                throw new ArgumentNullException("certificateHashValue");
             }
         }
 
@@ -267,26 +266,6 @@ namespace ParanoidMike
         }
 
         /// <summary>
-        /// Convert an object to a byte array.
-        /// Copied from http://snippets.dzone.com/posts/show/3897
-        /// </summary>
-        /// <param name="obj">
-        /// The object to be converted.
-        /// </param>
-        /// <returns>
-        /// The byte[] array to which the object is converted.
-        /// </returns>
-        private static byte[] ObjectToByteArray(Object obj)
-        {
-            if(obj == null)
-                return null;
-            BinaryFormatter bf = new BinaryFormatter();
-            MemoryStream ms = new MemoryStream();
-            bf.Serialize(ms, obj);
-            return ms.ToArray();
-        }
-
-        /// <summary>
         /// This function will write the binary hash value for the specified Certificate to the Registry location needed to support EFS.
         /// </summary>
         /// <param name="x509Cert">
@@ -301,10 +280,6 @@ namespace ParanoidMike
                                   valueName, 
                                   x509Cert.GetCertHash(), 
                                   RegistryValueKind.Binary);
-                //Utility.SetRegistryValue(true, 
-                //                         subKey, 
-                //                         "CertHash", 
-                //                         x509Cert.GetCertHash());
             }
 
             catch (CryptographicException)

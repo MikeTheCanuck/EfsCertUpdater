@@ -1,14 +1,22 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using Microsoft.Win32;
 
 namespace ParanoidMike
 {
     static class Utility
     {
-        static RegistryKey hkcu = Registry.CurrentUser;
-        static RegistryKey hklm = Registry.LocalMachine;
+        # region Variables
+
+        private static RegistryKey hkcu = Registry.CurrentUser;
+        private static RegistryKey hklm = Registry.LocalMachine;
+        private static int _osVersion = -1; // contains os major version number
+
+        # endregion
+
+        # region Public Methods
 
         //public static string ConvertByteArrayToString(byte[] inputArray)
         //    /// Converts an arbitrary-sized byte array into an arbitrary-sized string
@@ -20,6 +28,67 @@ namespace ParanoidMike
         //    // e.g. "C480C669C22270BACD51E65C6AC28596DFF93D0D"
 
         //}
+
+        /// <summary>
+        /// Instantiates a Trace log for detailed tracking of an application's internal activities.
+        /// </summary>
+        /// <param name="appLoggingFolder">
+        /// Name of folder to create in the current user's %LOCALAPPDATA% profile location.
+        /// </param>
+        /// <param name="traceLogFileName">
+        /// Name of file to create in the appLoggingFolder location.
+        /// </param>
+        public static void AddTraceLog(string appLoggingFolder,
+                                       string traceLogFileName)
+        {
+            // Setup Trace log
+            TextWriterTraceListener traceLog;
+            string _traceLogBaseFolder;
+            _traceLogBaseFolder = System.Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+            Directory.CreateDirectory(Path.Combine(_traceLogBaseFolder, appLoggingFolder));
+
+            // concatenate the full path
+            string _fullPath = _traceLogBaseFolder + "\\" + appLoggingFolder;
+
+            try
+            {
+                Stream traceLogFile = File.Open(Path.Combine(_fullPath, traceLogFileName), FileMode.Create, FileAccess.Write);
+                // Create a new text writer using the output stream, and add it to the trace listeners.
+                traceLog = new TextWriterTraceListener(traceLogFile);
+                ((StreamWriter)(traceLog.Writer)).AutoFlush = true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message, Environment.NewLine);
+                Console.WriteLine(e.StackTrace, Environment.NewLine);
+                throw;
+            }
+
+            Trace.AutoFlush = true;
+            Trace.Listeners.Clear();
+            Trace.Listeners.Add(traceLog);
+        }
+
+        /// <summary>
+        /// Convert a byte array to an Object.
+        /// Copied from http://snippets.dzone.com/posts/show/3897
+        /// </summary>
+        /// <param name="arrBytes">
+        /// The byte[] array to be converted.
+        /// </param>
+        /// <returns>
+        /// The object to which the byte array is converted.
+        /// </returns>
+        public static Object ByteArrayToObject(byte[] arrBytes)
+        {
+            MemoryStream memStream = new MemoryStream();
+            BinaryFormatter binForm = new BinaryFormatter();
+            memStream.Write(arrBytes, 0, arrBytes.Length);
+            memStream.Seek(0, SeekOrigin.Begin);
+            Object obj = (Object)binForm.Deserialize(memStream);
+            return obj;
+        }
 
         /// <summary>
         /// Takes in any string and convert it into a Byte array, suitable for e.g. insertion into a REG_BINARY Registry value.
@@ -44,6 +113,17 @@ namespace ParanoidMike
             }
 
             return _outputByteArray;
+        }
+
+        /// <summary>
+        /// Closes all existing Trace Log.
+        /// </summary>
+        public static void DisposeTraceLog()
+        {
+            if (Trace.Listeners.Count == 0)
+            {
+                Trace.Close();
+            }
         }
 
         /// <summary>
@@ -97,58 +177,6 @@ namespace ParanoidMike
         }
 
         /// <summary>
-        /// Instantiates a Trace log for detailed tracking of an application's internal activities.
-        /// </summary>
-        /// <param name="applicationDataFolder">
-        /// Name of folder to create in the current user's %LOCALAPPDATA% profile location.
-        /// </param>
-        /// <param name="traceLogFileName">
-        /// Name of file to create in the applicationDataFolder location.
-        /// </param>
-        public static void AddTraceLog(string applicationDataFolder, 
-                                       string traceLogFileName)
-        {
-            // Setup Trace log
-            TextWriterTraceListener traceLog;
-            string _userLocalApplicationData;
-            _userLocalApplicationData = System.Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-
-            Directory.CreateDirectory(Path.Combine(_userLocalApplicationData, applicationDataFolder));
-
-            // concatenate the full path
-            string _fullPath = _userLocalApplicationData + "\\" + applicationDataFolder;
-
-            try
-            {
-                Stream traceLogFile = File.Open(Path.Combine(_fullPath, traceLogFileName), FileMode.Create, FileAccess.Write);
-                // Create a new text writer using the output stream, and add it to the trace listeners.
-                traceLog = new TextWriterTraceListener(traceLogFile);
-                ((StreamWriter)(traceLog.Writer)).AutoFlush = true;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message, Environment.NewLine);
-                Console.WriteLine(e.StackTrace, Environment.NewLine);
-                throw;
-            }
-                        
-            Trace.AutoFlush = true;
-            Trace.Listeners.Clear();
-            Trace.Listeners.Add(traceLog);
-        }
-
-        /// <summary>
-        /// Closes all existing Trace Log.
-        /// </summary>
-        public static void DisposeTraceLog()
-        {
-            if (Trace.Listeners.Count == 0)
-            {
-            Trace.Close();
-            }
-        }
-
-        /// <summary>
         /// 
         /// </summary>
         /// <param name="userHive">
@@ -163,7 +191,7 @@ namespace ParanoidMike
         /// <returns>
         /// 
         /// </returns>
-        public static byte[] GetRegistryValue(bool userHive, 
+        public static byte[] GetRegistryValue(bool   userHive, 
                                               string subKey, 
                                               string valueName)
         {
@@ -182,7 +210,6 @@ namespace ParanoidMike
                 _registrySubKey = hklm.OpenSubKey(subKey);
             }
 
-            // _registryValue = (byte[])_registrySubKey.GetValue(valueName, null);
             _registryValue = (byte[]) _registrySubKey.GetValue(valueName, null);
 
             // NOTE: Previously I tried to derive a string that can be compared to X509Certificate2.GetCertHashString()
@@ -203,7 +230,25 @@ namespace ParanoidMike
             return _registryValue;
         }
 
-        private static int _osVersion = -1; // contains os major version number
+        /// <summary>
+        /// Convert an object to a byte array.
+        /// Copied from http://snippets.dzone.com/posts/show/3897
+        /// </summary>
+        /// <param name="obj">
+        /// The object to be converted.
+        /// </param>
+        /// <returns>
+        /// The byte[] array to which the object is converted.
+        /// </returns>
+        public static byte[] ObjectToByteArray(Object obj)
+        {
+            if (obj == null)
+                return null;
+            BinaryFormatter bf = new BinaryFormatter();
+            MemoryStream ms = new MemoryStream();
+            bf.Serialize(ms, obj);
+            return ms.ToArray();
+        }
 
         /// <summary>
         /// Gets the major version of the operating system.
@@ -236,7 +281,7 @@ namespace ParanoidMike
         /// <param name="valueData">
         /// 
         /// </param>
-        public static void SetRegistryValue(bool userHive, 
+        public static void SetRegistryValue(bool   userHive, 
                                             string subKey, 
                                             string valueName, 
                                             byte[] valueData)
@@ -270,5 +315,7 @@ namespace ParanoidMike
             }
 
         }
+
+        # endregion
     }
 }
