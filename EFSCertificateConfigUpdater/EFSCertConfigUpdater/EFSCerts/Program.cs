@@ -17,35 +17,36 @@ namespace EFSConfiguration
     {
         #region Variables
 
-        const string EFS_EKU = "1.3.6.1.4.1.311.10.3.4";
-
         /// <summary>
         /// Internal set of variables to gather parsed user input from supplied command-line parameters.
         /// </summary>
         private static Arguments arguments;
 
+        // TODO: Certificate template name should be returned in a form that is either:
+        //   (a) directly useable in an expression examining a field of the digital certificate, or 
+        //   (b) useable in more than one context (e.g. if there was some other Registry setting that recorded a form of the cert template)
         /// <summary>
-        /// Tracks whether the CertificateHash Registry value is already populated with an acceptable certificate.
+        /// The name of the Certificate Template whose certificates will be used to update the user's EFS configuration.
         /// </summary>
-        static bool CertificateHashValueIsOK;
-        
-        /// <summary>
-        /// Tracks whether the CertificateHash Registry value has been updated by this application.
-        /// </summary>
-        static bool CertificateHashValueUpdated;
+        static string CertificateTemplateName; //TODO: Create a function that takes the friendly name of a cert template, determines if there's a connection to AD, and looks up the OID for that template
 
         /// <summary>
         /// Used to store whatever exit code will be sent to StdOut.
         /// </summary>
         static int ExitCode;
 
-        // TODO: Certificate template name should be returned in a form that is either:
-        //   (a) directly useable in an expression examining a field of the digital certificate, or 
-        //   (b) useable in more than one context (e.g. if there was some other Registry setting that recorded a form of the cert template)
-        static string CertificateTemplateName; //TODO: Create a function that takes the friendly name of a cert template, determines if there's a connection to AD, and looks up the OID for that template
+        /// <summary>
+        /// Tracks whether the user's current EFS configuration (i.e. CertificateHash Registry value) is already populated with an acceptable certificate.
+        /// </summary>
+        static bool IsCurrentUserEfsConfigurationOK;
 
         // TODO: enable this argument to receive an identifier of a targeted CA (e.g. Subject field's "CN", Serial number)
         static string IssuingCAIdentifier;
+
+        /// <summary>
+        /// Tracks whether the user's EFS configuration (i.e. CertificateHash Registry value) has been updated by this application.
+        /// </summary>
+        static bool IsUserEfsConfigurationUpdated;
 
         /// <summary>
         /// Enables the user to limit the chosen EFS certificate to only those enrolled with a v2 Template.
@@ -120,7 +121,6 @@ namespace EFSConfiguration
              */        
 
             // This is a very elegant method to narrow the user's certificates down to just the EFS certificates; unfortunately, it doesn't work
-            //X509Certificate2Collection UserCertsWithEku = (X509Certificate2Collection)UserCerts.Find(X509FindType.FindByExtension, EFS_EKU, true);
             X509Certificate2Collection UserCertsWithEku = (X509Certificate2Collection)UserCerts.Find(X509FindType.FindByExtension, 
                                                                                                      "Enhanced Key Usage", 
                                                                                                      true);
@@ -191,7 +191,7 @@ namespace EFSConfiguration
                 }
 
                 // Skip the cert if it DOES NOT contain the EFS EKU
-                else if (CertificateFunctions.DoesCertificateHaveSpecifiedEku(x509Cert, EFS_EKU) == false)
+                else if (EFSCertificateFunctions.IsCertificateAnEfsCertificate(x509Cert) == false)
                 {
                     Trace.WriteLine("Certificate Rejected: certificate does not contain the EFS EKU." + 
                                     Environment.NewLine);
@@ -216,13 +216,15 @@ namespace EFSConfiguration
                  * out of the loop if we've ensured that the cert meets all criteria AND happens to be the currently-configured cert.
                  */
 
+                    // TODO: in a future version, where all certs are evaluated and the best one chosen, this function may not be necessary
                 else if (EFSCertificateFunctions.IsCertificateTheCurrentlyConfiguredEFSCertificate(x509Cert))
                 {
                     Trace.WriteLine("The selected certificate is already configured as the active EFS certificate." + 
                                     Environment.NewLine);
 
-                    CertificateHashValueIsOK = true;
+                    IsCurrentUserEfsConfigurationOK = true;
 
+                    // TODO: in a future version, where all certs are evaluated and the best one chosen, remove this "break" statement
                     // Stop checking any additional certificates, as the EFS cert currently in use has met all criteria
                     break;
                 }
@@ -258,14 +260,18 @@ namespace EFSConfiguration
 
             }
 
-            // If the foreach loop has identified an EFS certificate, then update the user's CertificateHash registry value with the selected certificate's hash value
-            if (CertificateHashValueIsOK != true && EfsCertificateToUse != null)
+            // If the foreach loop has identified an EFS certificate, then update the user's EFS Configuration with the selected certificate
+            if (IsCurrentUserEfsConfigurationOK != true && EfsCertificateToUse != null)
             {
-                CertificateHashValueUpdated = EFSCertificateFunctions.UpdateCertificateHashRegistryValue(EfsCertificateToUse);
+                // TODO: add this detail to Trace Logging
+                //Console.WriteLine("The original EFS CertificateHash registry setting was one value" + Environment.NewLine); // + certificateHashValue + Environment.NewLine);
+                //Console.WriteLine("The new EFS CertificateHash setting will be something else" + Environment.NewLine); // + certificateThumbprint + Environment.NewLine);
+
+                IsUserEfsConfigurationUpdated = EFSCertificateFunctions.UpdateUserEfsConfiguration(EfsCertificateToUse);
             }
 
             // Were any suitable certificates identified?  If not, then indicate that no suitable certificates were found
-            if (CertificateHashValueUpdated != true  && CertificateHashValueIsOK != true)
+            if (IsUserEfsConfigurationUpdated != true  && IsCurrentUserEfsConfigurationOK != true)
             {
                 // TODO: send an error code to StdErr, for those IT admins that want to use this utility in a script (and prefer StdErr as a way to capture issues)
                 // TODO: v2 - implement an Application Event Log message as well - try this sample code: http://www.thescarms.com/dotnet/EventLog.aspx
@@ -282,12 +288,12 @@ namespace EFSConfiguration
             }
 
             // If the user ultimately succeeded in configuring a suitable EFS certificate, then ExitCode=0; otherwise, it should be some non-zero value.
-            if (CertificateHashValueUpdated || CertificateHashValueIsOK)
+            if (IsUserEfsConfigurationUpdated || IsCurrentUserEfsConfigurationOK)
             {
                 ExitCode = 0;
             }
 
-            if (CertificateHashValueUpdated == true)
+            if (IsUserEfsConfigurationUpdated == true)
             {
                /* 
                 * TODO: (v3) Assuming the application has updated the CertificateHash Registry value with the thumbprint from the selected EFS cert, 
@@ -385,8 +391,6 @@ namespace EFSConfiguration
                 }
             }
         }
-
-
 
         #endregion
     }
