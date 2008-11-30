@@ -1,21 +1,49 @@
-﻿using System;
-using System.Diagnostics;
-using System.Security;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using Microsoft.Win32;
-using ParanoidMike;
+﻿//-----------------------------------------------------------------------
+// <copyright file="EFSCertificateFunctions.cs" company="ParanoidMike">
+//     Copyright (c) ParanoidMike. All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
 
 namespace ParanoidMike
 {
-    static class EFSCertificateFunctions
-    {
-        const string EFS_EKU = "1.3.6.1.4.1.311.10.3.4";
-        const string fullKey =   @"HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\EFS\CurrentKeys";
-        const string subKey =    @"Software\Microsoft\Windows NT\CurrentVersion\EFS\CurrentKeys";
-        const string valueName =  "CertificateHash";
+    using System;
+    using System.Diagnostics;
+    using System.Security;
+    using System.Security.Cryptography;
+    using System.Security.Cryptography.X509Certificates;
+    using Microsoft.Win32;
+    using ParanoidMike;
 
-        # region Public Methods
+    /// <summary>
+    /// Provides a set of functions for manipulating EFS digital certificates and Windows configuration properties that support EFS.
+    /// </summary>
+    public static class EFSCertificateFunctions
+    {
+        #region Constants
+
+        /// <summary>
+        /// The OID that indicates the EFS Extended Key Usage.
+        /// </summary>
+        private const string EFS_EKU = "1.3.6.1.4.1.311.10.3.4";
+
+        /// <summary>
+        /// The full path to the Registry key that contains user EFS certificate configuration settings.
+        /// </summary>
+        private const string FullKey =   @"HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\EFS\CurrentKeys";
+
+        /// <summary>
+        /// The subkey (from the HKCU hive) where the user's EFS certificate configuration settings are stored.
+        /// </summary>
+        private const string SubKey =    @"Software\Microsoft\Windows NT\CurrentVersion\EFS\CurrentKeys";
+
+        /// <summary>
+        /// The name of the Registry value which contains the user's EFS certificate configuration.
+        /// </summary>
+        private const string ValueName =  "CertificateHash";
+
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
         /// Determines whether the certificate is an EFS certificate or not.
@@ -52,15 +80,15 @@ namespace ParanoidMike
         public static bool IsCertificateTheCurrentlyConfiguredEFSCertificate(X509Certificate2 x509Cert)
         {
             // Create a variable to store the passed-in certificate's thumbprint value
-            byte[] _certificateThumbprint;
+            byte[] certificateThumbprint;
 
             // Create a variable to store the current CertificateHash registry value
-            byte[] _certificateHashRegistryValue;
+            byte[] certificateHashRegistryValue;
 
             // First test whether the CertificateHash Registry value even exists - if it doesn't, by definition there cannot be a match
-            _certificateHashRegistryValue = EFSCertificateFunctions.GetCertificateHashValueFromRegistry();
+            certificateHashRegistryValue = EFSCertificateFunctions.GetCertificateHashValueFromRegistry();
 
-            if (_certificateHashRegistryValue == null)
+            if (certificateHashRegistryValue == null)
             {
                 return false;
             }
@@ -73,16 +101,15 @@ namespace ParanoidMike
              *       2. return value is always byte[20] in size
              */
 
-
             // Extract the passed-in certificate's thumbprint value
-            _certificateThumbprint = x509Cert.GetCertHash();
+            certificateThumbprint = x509Cert.GetCertHash();
 
-            // Console.WriteLine("Current cert hash in Registry   = " + GetCertificateHashValueFromRegistry() + Environment.Newline);
+            //// Console.WriteLine("Current cert hash in Registry   = " + GetCertificateHashValueFromRegistry() + Environment.Newline);
 
             try
             {
                 // Validating whether the current certificate is the same one currently configured for the current user's EFS CertificateHash Registry value
-                if (EFSCertificateFunctions.DoesCertificateMatchEfsCertificateHashRegistryValue(_certificateThumbprint, EFSCertificateFunctions.GetCertificateHashValueFromRegistry()))
+                if (EFSCertificateFunctions.DoesCertificateMatchEfsCertificateHashRegistryValue(certificateThumbprint, EFSCertificateFunctions.GetCertificateHashValueFromRegistry()))
                 {
                     return true;
                 }
@@ -101,24 +128,27 @@ namespace ParanoidMike
         /// <summary>
         /// Updates the user's EFS configuration settings with the newly-selected EFS certificate, and logs the result (success or exceptions).
         /// </summary>
-        /// <param name="EfsCertificate">
+        /// <param name="efsCertificate">
         /// A digital certificate, passed in as an X509Certificate2 object.
         /// </param>
-        public static bool UpdateUserEfsConfiguration(X509Certificate2 EfsCertificate)
+        /// <returns>
+        /// True if the EFS configuration update is successful.
+        /// False if the EFS configuration update is unsuccessful.
+        /// </returns>
+        public static bool UpdateUserEfsConfiguration(X509Certificate2 efsCertificate)
         {
             bool returnValue;
 
             try
             {
                 // WriteEfsCertificateHashToRegistry() returns true only if the CertificateHash value is successfully updated
-                returnValue = WriteEfsCertificateHashToRegistry(EfsCertificate);
+                returnValue = WriteEfsCertificateHashToRegistry(efsCertificate);
 
                 if (returnValue)
                 {
                     Trace.WriteLine("The user's EFS configuration has been updated with a suitable digital certificate." +
                                     Environment.NewLine);
                 }
-
             }
             catch (CryptographicException e)
             {
@@ -134,9 +164,9 @@ namespace ParanoidMike
             return returnValue;
         }
         
-        # endregion
+        #endregion
 
-        # region Private Methods
+        #region Private Methods
 
         /// <summary>
         /// This function compares the hash calculated for the current certificate to the EFS CertificateHash Registry value for the current user.
@@ -151,8 +181,9 @@ namespace ParanoidMike
         /// True if the two values match.
         /// False if the two values do not match.
         /// </returns>
-        private static bool DoesCertificateMatchEfsCertificateHashRegistryValue(byte[] certificateThumbprint,
-                                                                                byte[] certificateHashValue)
+        private static bool DoesCertificateMatchEfsCertificateHashRegistryValue(
+            byte[] certificateThumbprint,
+            byte[] certificateHashValue)
         {
             // First test the input values to make sure they're not null
             if ((certificateThumbprint != null) || (certificateHashValue != null))
@@ -165,7 +196,6 @@ namespace ParanoidMike
                                         Environment.NewLine);
                         return true;
                     }
-
                     else
                     {
                         Trace.WriteLine("The user's EFS certificate configuration will be updated." +
@@ -173,16 +203,15 @@ namespace ParanoidMike
                         return false;
                     }
                 }
-
-                // TODO: figure out what kind of Exception(s) would occur when the Registry value doesn't exist
-                // TODO: Exception for when the user doesn't have permission to the Registry key
                 catch (NotSupportedException)
                 {
+                    // TODO: figure out what kind of Exception(s) would occur when the Registry value doesn't exist
+                    // TODO: Exception for when the user doesn't have permission to the Registry key
                     // Keep passing the error back up to the original caller
                     throw;
                 }
-
             }
+
             // Throw an ArgumentNullException because one of the arrays is null
             if (certificateThumbprint == null)
             {
@@ -214,25 +243,23 @@ namespace ParanoidMike
             // NOTE: or the Cert thumbprint is the SHA-1 hash of the binary DER cert blob http://groups.google.com/group/microsoft.public.platformsdk.security/msg/1f126505c454662d
 
             // Declare a variable to hold the current CertificateHash Registry setting
-            byte[] _certificateHashRegistryValue;
+            byte[] certificateHashRegistryValue;
 
             // Confirm that the CertificateHash Registry value exists
             try
             {
                 // HACK: I've added an explicit Cast to byte[] for Registry.GetValue() because the "default value" can't be immediately converted from object to byte[]
                 // If this doesn't work, I could try again with the more complex (but more flexible) RegistryKey class.
-                _certificateHashRegistryValue = (byte[])Registry.GetValue(fullKey, valueName, null);
-                //_certificateHashRegistryValue = Utility.GetRegistryValue(true, 
-                //                                                         subKey, 
-                //                                                         valueName);
+                certificateHashRegistryValue = (byte[])Registry.GetValue(FullKey, ValueName, null);
+                ////certificateHashRegistryValue = Utility.GetRegistryValue(true, 
+                ////                                                         SubKey, 
+                ////                                                         ValueName);
 
                 // NOTE: Previously I tried to derive a string that can be compared to X509Certificate2.GetCertHashString()
                 // e.g. "C480C669C22270BACD51E65C6AC28596DFF93D0D"
                 // Note: I tried this conversion code I found on the 'Net http://forums.microsoft.com/MSDN/ShowPost.aspx?PostID=1656747&SiteId=1, but couldn't get it to work
-
-                return _certificateHashRegistryValue;
+                return certificateHashRegistryValue;
             }
-
             catch (ArgumentException e)
             {
                 // If the Registry setting hasn't been specified correctly, this exception will be thrown
@@ -245,10 +272,9 @@ namespace ParanoidMike
 
                 throw;
             }
-
             catch (SecurityException e)
-            // TODO: figure out which kind of exception needs to be caught here
             {
+                // TODO: figure out which kind of exception needs to be caught here
                 // If Windows throws an error indicating the Registry value does not exist, then we'll know that we can create it safely
                 Trace.WriteLine("Error = " +
                                 e.Message +
@@ -271,23 +297,22 @@ namespace ParanoidMike
         /// <param name="x509Cert">
         /// A digital certificate, passed in as an X509Certificate2 object.
         /// </param>
+        /// <returns>
+        /// True if the update to the CertificateHash registry value is successful.
+        /// False if the update to the CertificateHash registry value is unsuccessful.
+        /// </returns>
         private static bool WriteEfsCertificateHashToRegistry(X509Certificate2 x509Cert)
         {
             // Write this certificate's hash value to the CertificateHash Registry setting
             try
             {
-                Registry.SetValue(fullKey, 
-                                  valueName, 
-                                  x509Cert.GetCertHash(), 
-                                  RegistryValueKind.Binary);
+                Registry.SetValue(FullKey, ValueName, x509Cert.GetCertHash(), RegistryValueKind.Binary);
             }
-
             catch (CryptographicException)
             {
                 // This exception = "m_safeCertContext is an invalid handle."
                 return false;
             }
-
             catch (UnauthorizedAccessException)
             {
                 // This exception = "Cannot write to the registry key."
@@ -301,7 +326,6 @@ namespace ParanoidMike
                                 Environment.NewLine);
                 return false;
             }
-
             catch (Exception e)
             {
                 // No idea what else could go wrong, so let's just spew the exception details to the command line for now.
@@ -316,6 +340,6 @@ namespace ParanoidMike
             return true;
         }
         
-        # endregion
+        #endregion
     }
 }
