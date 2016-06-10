@@ -13,6 +13,7 @@ One of the most critical unresolved issues with using Windows EFS at scale is th
 ## Parameters
 __/m1__ or __/migrate1__: the tool will also migrate v1 certificates, as well as self-signed certificates
 
+## Notes
 Last tested to work on Windows XP.
 
 (Repo cloned from Codeplex to reflect the fact that Codeplex is on "death watch", given Microsoft's [massive migration to Github](http://www.theregister.co.uk/2015/01/15/codeplex_repository_out_of_favour_as_microsoft_moves_major_projects_to_github/))
